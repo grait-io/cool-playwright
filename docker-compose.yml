@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  playwright:
+    build: .
+    ports:
+      - "3101:3000"
+    environment:
+      - NODE_ENV=production
+      - CI=true
+      - REDIS_URL=redis://:tZsWtGzZ74cY0sbUdi19ozWDz05QzgigxnVIU18klQBXBvMCU4K1eQyUNN1a6WXM@aossows84gw8k8okcocs4cks:6379/0
