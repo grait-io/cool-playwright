@@ -15,4 +15,8 @@ ENV CI=true
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-CMD ["node", "server.js"]
+# Create startup script that tests Redis connection before starting the app
+RUN echo '#!/bin/sh\nnode test-redis-connection.js && node server.js' > /app/start.sh && \
+    chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
