@@ -2,9 +2,10 @@ version: '3.8'
 services:
   playwright:
     build: .
-    ports:
-      - "${PORT}:3000"
+    # ports: uncomment if you want to expose the port to the host outside of coolify
+    #  - "3101:3000"
     environment:
       - NODE_ENV=production
       - CI=true
       - REDIS_URL=${REDIS_URL}
+      - PORT = 3000
