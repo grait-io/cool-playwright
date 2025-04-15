@@ -9,6 +9,17 @@ const port = 3000;
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379/0';
 const redis = new Redis(redisUrl);
 
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    // Check Redis connection
+    await redis.ping();
+    res.status(200).json({ status: 'healthy', redis: 'connected' });
+  } catch (error) {
+    res.status(500).json({ status: 'unhealthy', redis: 'disconnected', error: error.message });
+  }
+});
+
 app.get('/screenshot', async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).send('Missing URL parameter');
