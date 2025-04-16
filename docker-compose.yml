@@ -9,7 +9,7 @@ services:
     ports:
       - "13000:3000"
     environment:
-      - HOST: 0.0.0.0
+      - HOST=0.0.0.0
       - NODE_ENV=production
       - CI=true
       # Redis URL can be set via environment variable or in Coolify UI
