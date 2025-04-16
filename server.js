@@ -1,9 +1,18 @@
 const express = require('express');
 const { chromium } = require('playwright');
 const Redis = require('ioredis');
+const fs = require('fs');
+const path = require('path');
+
+// Ensure data directory exists
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+  console.log(`Created data directory at ${dataDir}`);
+}
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Use REDIS_URL from environment or fallback to local Redis
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379/0';
@@ -68,7 +77,19 @@ app.get('/screenshot', async (req, res) => {
     const screenshot = await page.screenshot({ fullPage: true });
     await browser.close();
     
-    // Cache result
+    // Save screenshot to data directory
+    const urlSafe = url.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 100);
+    const filename = `${urlSafe}_${Date.now()}.png`;
+    const filePath = path.join(dataDir, filename);
+    
+    try {
+      fs.writeFileSync(filePath, screenshot);
+      console.log(`Screenshot saved to ${filePath}`);
+    } catch (fileError) {
+      console.error(`Error saving screenshot to file: ${fileError.message}`);
+    }
+    
+    // Cache result in Redis
     await redis.set(url, screenshot.toString('base64'), 'EX', 3600);
     
     res.set('Content-Type', 'image/png');
@@ -78,6 +99,31 @@ app.get('/screenshot', async (req, res) => {
   }
 });
 
+// Endpoint to list all saved screenshots
+app.get('/screenshots', (req, res) => {
+  try {
+    const files = fs.readdirSync(dataDir)
+      .filter(file => file.endsWith('.png'))
+      .map(file => {
+        const stats = fs.statSync(path.join(dataDir, file));
+        return {
+          filename: file,
+          created: stats.birthtime,
+          size: stats.size
+        };
+      })
+      .sort((a, b) => b.created - a.created); // Sort by creation date, newest first
+    
+    res.json({
+      count: files.length,
+      screenshots: files
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Playwright microservice running on port ${port}`);
+  console.log(`Data directory: ${dataDir}`);
 });

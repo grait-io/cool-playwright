@@ -26,7 +26,36 @@ A microservice that provides a screenshot API endpoint with Redis caching.
    redis://:tZsWtGzZ74cY0sbUdi19ozWDz05QzgigxnVIU18klQBXBvMCU4K1eQyUNN1a6WXM@aossows84gw8k8okcocs4cks:6379/0
    ```
    (Or your own Redis URL)
-5. Deploy the service
+5. Make sure the service is connected to the Coolify network (this is configured in the docker-compose.yml)
+6. Deploy the service
+
+### Coolify Network Configuration
+
+The docker-compose.yml file is configured to connect to the Coolify network, which allows this service to communicate with other services in your Coolify environment, including Redis/Dragonfly.
+
+```yaml
+networks:
+  coolify:
+    external: true
+```
+
+This configuration ensures that the Playwright microservice can access your Redis instance through the Coolify network.
+
+The docker-compose.yml also includes:
+- Container name: `cool-playwright`
+- Traefik labels for routing (customize the hostname as needed)
+- Restart policy: `unless-stopped`
+- Volume for persistent data: `playwright_data`
+
+### Data Persistence
+
+The service uses a Docker volume (`playwright_data`) to persist screenshots between container restarts. This ensures that:
+
+1. Screenshots are not lost if the container is restarted
+2. You can access historical screenshots even if they're no longer in the Redis cache
+3. The data can be backed up or migrated independently of the container
+
+The volume is mounted at `/app/data` inside the container.
 
 ### Important Notes on Redis Configuration
 
@@ -37,6 +66,7 @@ A microservice that provides a screenshot API endpoint with Redis caching.
   3. It can be set in docker-compose.yml for local development
 
 - If you see Redis connection errors, check that your REDIS_URL is correctly set in Coolify
+- Ensure that both the Playwright service and Redis service are on the same Coolify network
 
 ## API Endpoints
 
@@ -46,7 +76,15 @@ A microservice that provides a screenshot API endpoint with Redis caching.
 GET /screenshot?url=https://example.com
 ```
 
-Returns a PNG screenshot of the specified URL.
+Returns a PNG screenshot of the specified URL. Screenshots are both cached in Redis and saved to the persistent data volume.
+
+### List Screenshots
+
+```
+GET /screenshots
+```
+
+Returns a list of all screenshots saved to the persistent data volume, including filenames, creation dates, and file sizes.
 
 ### Health Check
 
@@ -54,7 +92,7 @@ Returns a PNG screenshot of the specified URL.
 GET /health
 ```
 
-Returns the health status of the service, including Redis connection status.
+Returns the health status of the service, including Redis connection status and environment information.
 
 ## Testing
 

@@ -2,12 +2,17 @@ version: '3.8'
 services:
   playwright:
     build: .
-    # ports: uncomment if you want to expose the port to the host outside of coolify
-    #  - "3101:3000"
+    container_name: cool-playwright
+    networks:
+      - coolify
+    ports:
+      - "13000:3000"
     environment:
       - NODE_ENV=production
       - CI=true
-      - REDIS_URL=${REDIS_URL}
+      # Redis URL can be set via environment variable or in Coolify UI
+      # Default value is in Dockerfile, but can be overridden here
+      - REDIS_URL=${REDIS_URL:-redis://:tZsWtGzZ74cY0sbUdi19ozWDz05QzgigxnVIU18klQBXBvMCU4K1eQyUNN1a6WXM@aossows84gw8k8okcocs4cks:6379/0}
       - PORT=3000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -15,3 +20,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.coolplaywright.rule=Host(`playwright.example.com`)
+      - traefik.http.services.coolplaywright.loadbalancer.server.port=3000
+    restart: unless-stopped
+    volumes:
+      - playwright_data:/app/data
+
+networks:
+  coolify:
+    external: true
+
+volumes:
+  playwright_data:
